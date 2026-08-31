@@ -1,9 +1,13 @@
 """Controle o Spotify com gestos da mão pela webcam.
 
-Uso:
-    python main.py                        # teclas de mídia (padrão)
-    python main.py --controller spotify   # Web API oficial
-    python main.py --no-preview           # roda sem a janela de vídeo
+Normalmente aberto por um dos Iniciar*.bat da raiz, nunca por duplo clique
+(o py.exe escolheria o Python 3.14, sem as bibliotecas).
+
+Uso direto, a partir da raiz do projeto:
+    python src/main.py                        # teclas de mídia (padrão)
+    python src/main.py --controller spotify   # Web API oficial
+    python src/main.py --controller youtube   # rolagem por arrasto
+    python src/main.py --no-preview           # roda sem a janela de vídeo
 
 Gestos:
     deslizar a mão para a direita    -> próxima faixa

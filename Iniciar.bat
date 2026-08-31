@@ -1,23 +1,12 @@
 @echo off
-title Spotify por Gestos
-cd /d "%~dp0"
-
-rem Chama o Python 3.10 explicitamente: o duplo clique em .py usa o py.exe,
-rem que escolhe o Python 3.14 desta maquina - e as bibliotecas estao no 3.10.
-set PYTHON=C:\Python310\python.exe
-
-if not exist "%PYTHON%" (
-    echo Nao encontrei o Python em %PYTHON%
-    echo Edite este arquivo e corrija a linha "set PYTHON=".
-    echo.
-    pause
-    exit /b 1
-)
-
-rem -u = saida sem buffer, para as mensagens aparecerem na hora
-"%PYTHON%" -u main.py %*
-
-echo.
-echo ---------------------------------------------
-echo Programa encerrado. Pressione uma tecla para fechar.
-pause >nul
+rem Modo padrao: teclas de midia do sistema (Spotify, YouTube, qualquer player).
+rem Nao precisa de login nem de Premium.
+rem
+rem Sem janela de video: e o modo para usar por cima de outra coisa. A camera
+rem continua ligada, porque e ela que detecta os gestos.
+rem Para ver o video, use o "Iniciar (debug).bat".
+rem
+rem AVISO: teclas de midia nao chegam quando a janela em foco roda como
+rem administrador (jogos com anticheat, por exemplo) - o Windows bloqueia.
+rem Nesse caso use o "Iniciar Spotify.bat", que fala HTTP e nao depende disso.
+call "%~dp0_executar.bat" --no-preview %*

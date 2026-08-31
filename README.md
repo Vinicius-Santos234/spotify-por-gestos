@@ -6,7 +6,7 @@ Controla o Spotify com gestos da mão pela webcam, usando MediaPipe + OpenCV.
 
 **Dê duplo clique em `Iniciar.bat`.**
 
-> ⚠️ **Não abra o `main.py` com duplo clique** — a janela fecha na hora.
+> ⚠️ **Não abra o `src/main.py` com duplo clique** — a janela fecha na hora.
 > Esta máquina tem 3 versões do Python (3.10, 3.13 e 3.14), e o duplo clique
 > em `.py` usa o **3.14**, que não tem as bibliotecas instaladas. O erro
 > aparece e o console fecha antes de dar para ler.
@@ -33,7 +33,7 @@ O círculo verde no meio da tela mostra que a pinça foi reconhecida.
 O movimento de volta com os dedos soltos **não rola nada** — é o que evita
 ficar parado no mesmo lugar. Ver `specs/002-rolagem-por-arrasto.md`.
 
-Sensibilidade em `config.py`:
+Sensibilidade em `src/config.py`:
 
 | Campo | O que faz |
 |---|---|
@@ -56,7 +56,7 @@ Sensibilidade em `config.py`:
 Pelo terminal, o equivalente é:
 
 ```bash
-C:\Python310\python.exe main.py
+C:\Python310\python.exe src\main.py
 ```
 
 ## Instalação (só se for para outra máquina)
@@ -101,7 +101,7 @@ o gesto está acontecendo.
 qualquer outro player. Não precisa de login nem de Premium.
 
 ```bash
-python main.py
+python src\main.py
 ```
 
 **`--controller spotify`** — usa a Web API oficial. Precisa de conta Premium
@@ -110,10 +110,10 @@ e de credenciais de app:
 1. Crie um app em <https://developer.spotify.com/dashboard>
 2. Em *Redirect URIs*, adicione `http://127.0.0.1:8888/callback`
 3. Copie `.env.example` para `.env` e preencha o client id/secret
-4. `python main.py --controller spotify` — o navegador abre uma vez para autorizar
+4. `python src\main.py --controller spotify` — o navegador abre uma vez para autorizar
 
 ```bash
-python main.py --controller spotify
+python src\main.py --controller spotify
 ```
 
 Vantagem da API: comanda o Spotify mesmo quando ele está em outro dispositivo
@@ -132,7 +132,7 @@ Sair: tecla `Q` na janela de vídeo, ou `Ctrl+C` no terminal.
 
 ## Ajustes finos
 
-Todos os limiares ficam em `config.py`:
+Todos os limiares ficam em `src/config.py`:
 
 - Pulando faixa sem querer? Aumente `swipe_min_dx` (ex.: `0.24`).
 - **Swipe difícil de reconhecer?** Diminua `swipe_min_dx` (ex.: `0.12`) e/ou
@@ -149,20 +149,34 @@ Todos os limiares ficam em `config.py`:
 - Palma aberta não reconhecida? Diminua `finger_extended_margin` para `1.0`.
   Use `--debug` para ver dedo por dedo o que está sendo detectado.
 
-Depois de mexer nos limiares, `python test_gestures.py` simula os gestos com
+Depois de mexer nos limiares, `python tests/test_gestures.py` simula os gestos com
 landmarks sintéticos e diz se cada um ainda dispara como esperado — sem câmera.
 
 ## Estrutura
 
 ```
-main.py               loop de vídeo, HUD e disparo das ações
-hand_tracker.py       wrapper do MediaPipe HandLandmarker
-gestures.py           landmarks -> pose e swipe -> ação
-config.py             todos os limiares ajustáveis
-controllers/
-  media_keys.py       teclas de mídia (Windows via SendInput, outros via pynput)
-  spotify_api.py      Spotify Web API via spotipy
+Iniciar.bat           teclas de mídia, sem janela (duplo clique aqui)
+Iniciar YouTube.bat   rolagem por arrasto, sem janela
+Iniciar Spotify.bat   Web API, sem janela — o modo que funciona com jogo aberto
+Iniciar (debug).bat   COM janela e dedo a dedo, para calibrar
+_executar.bat         encanamento compartilhado; não use direto
+
+src/
+  main.py             loop de vídeo, HUD e disparo das ações
+  hand_tracker.py     wrapper do MediaPipe HandLandmarker
+  gestures.py         landmarks -> pose, swipe e arrasto -> ação
+  config.py           todos os limiares ajustáveis
+  controllers/
+    base.py           as duas interfaces: player e rolagem
+    media_keys.py     teclas de mídia (Windows via SendInput, outros via pynput)
+    spotify_api.py    Spotify Web API via spotipy
+    youtube.py        rolagem por roda do mouse
+
+tests/
+  test_gestures.py    a suíte inteira, com landmarks sintéticos
+specs/                o porquê das decisões de desenho
+models/               modelo do MediaPipe (baixado sozinho, fora do git)
 ```
 
-Para adicionar um gesto novo: crie o valor em `Action` (`gestures.py`),
-detecte-o em `GestureEngine.update`, e trate-o no `if` de ações em `main.py`.
+Para adicionar um gesto novo: crie o valor em `Action` (`src/gestures.py`),
+detecte-o em `GestureEngine.update`, e trate-o no `if` de ações em `src/main.py`.

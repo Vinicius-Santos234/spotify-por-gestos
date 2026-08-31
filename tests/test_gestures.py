@@ -1,8 +1,14 @@
 """Testa a lógica de gestos com landmarks sintéticos, sem precisar de câmera.
 
-Rode depois de mexer nos limiares do config.py:  python test_gestures.py
+Rode depois de mexer nos limiares do config.py:
+
+    C:\Python310\python.exe tests/test_gestures.py
 """
 import sys
+from pathlib import Path
+
+# O codigo mora em src/, uma pasta acima desta.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from config import Config
 from gestures import Action, GestureEngine, Pose, classify_pose

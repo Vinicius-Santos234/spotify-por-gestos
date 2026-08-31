@@ -7,7 +7,10 @@ Se estiverem difíceis de disparar, diminua.
 from dataclasses import dataclass
 from pathlib import Path
 
-PROJECT_DIR = Path(__file__).parent
+# O codigo mora em src/, entao a raiz do projeto (onde ficam models/ e o .env)
+# esta um nivel acima. Sem o segundo .parent, o modelo seria procurado em
+# src/models e baixado de novo a cada execucao.
+PROJECT_DIR = Path(__file__).parent.parent
 MODEL_PATH = PROJECT_DIR / "models" / "hand_landmarker.task"
 MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
