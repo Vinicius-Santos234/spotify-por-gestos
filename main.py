@@ -165,7 +165,12 @@ def main() -> None:
     if hasattr(controller, "scroll_by"):
         print("Gestos: junte polegar e indicador (pinca) e arraste, como no celular")
         print("        soltar a pinca para o movimento de volta nao rolar")
-    print("Sair: Q na janela de video, ou Ctrl+C aqui.\n")
+    # Sem janela nao existe tecla Q para apertar: o texto tem que dizer a
+    # verdade do modo em que esta rodando.
+    if args.no_preview:
+        print("Sem janela de video. Sair: Ctrl+C aqui.\n")
+    else:
+        print("Sair: Q na janela de video, ou Ctrl+C aqui.\n")
 
     last_event: Optional[str] = None
     last_event_t = 0.0

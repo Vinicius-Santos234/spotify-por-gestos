@@ -42,6 +42,17 @@ Sensibilidade em `config.py`:
 | `pinca_dedos_livres` | quantos dos três dedos livres precisam estar esticados. É o que impede o punho de virar pinça |
 | `scroll_natural` | `True` = conteúdo acompanha o dedo, como no celular. `False` = sentido da roda do mouse |
 
+**Para controlar o Spotify com jogo aberto, use `Iniciar Spotify.bat`.**
+
+> Este modo fala HTTP com a Web API em vez de injetar tecla no Windows, então
+> **funciona em segundo plano** — foco e privilégio da janela em primeiro plano
+> não importam. O `--controller media` não: quando o jogo em foco roda elevado,
+> o Windows bloqueia o `SendInput` e o gesto é detectado mas não passa.
+>
+> Abre **sem janela de vídeo** de propósito: é o modo para usar por cima de
+> outra coisa. A câmera continua ligada, porque é ela que detecta os gestos.
+> Para ver o vídeo, use o `Iniciar (debug).bat`. Sai com Ctrl+C.
+
 Pelo terminal, o equivalente é:
 
 ```bash
