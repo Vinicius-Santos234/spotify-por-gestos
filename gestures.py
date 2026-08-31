@@ -178,8 +178,9 @@ class GestureEngine:
         self.swipe_dx = dx
         self.swipe_dy = dy
 
-        # O progresso visual deve ser mapeado independentemente da direção
-        # para que o usuário saiba se está chegando lá.
+        # Quanto do deslocamento necessário já foi feito, com sinal.
+        # O HUD mostra isso como barra: sem ela não dá para saber se faltou
+        # movimento, faltou velocidade ou a pose barrou o gesto.
         self.swipe_progress = max(-1.5, min(1.5, dx / cfg.swipe_min_dx))
         self.swipe_vertical_progress = max(-1.5, min(1.5, dy / cfg.swipe_min_dy))
 
@@ -190,7 +191,10 @@ class GestureEngine:
         vert_ok = (abs(dy) >= cfg.swipe_min_dy) and (abs(dy) >= abs(dx) * cfg.swipe_vertical_ratio)
 
         # R2: Horizontal e vertical não se atropelam
-        # Se os dois limiares forem atendidos simultaneamente, ganha a direção com maior deslocamento absoluto (embora os rácios mutuamente exclusivos normalmente impeçam isso)
+        # Se os dois limiares forem atendidos ao mesmo tempo, ganha a direção
+        # com maior deslocamento absoluto. Na prática não acontece: com as duas
+        # proporções em 1.4, |dx| >= 1.4|dy| e |dy| >= 1.4|dx| não podem valer
+        # juntas. O desempate existe para o caso de alguém baixar os limiares.
         if horiz_ok and vert_ok:
             if abs(dx) > abs(dy):
                 vert_ok = False

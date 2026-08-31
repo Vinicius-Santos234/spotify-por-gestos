@@ -33,10 +33,9 @@ class _PynputMouse:
         self._mouse = MouseController()
 
     def send_wheel(self, dy: int) -> bool:
-        # pynput scroll usa dy positivo para cima e negativo para baixo, ou o inverso?
-        # dy>0 no windows = pra frente/pra cima. No pynput, scroll(dx, dy).
-        # Vamos passar os valores aproximados (no Windows mouseData = 120 por tick).
-        # Convertendo 120 para 1 "tick" do pynput.
+        # No pynput, assim como no Windows, dy positivo rola para cima (frente)
+        # e negativo para baixo (trás).
+        # Convertendo 120 de mouseData (padrão do Windows) para 1 "tick" do pynput.
         ticks = dy // 120 if dy else 0
         if ticks == 0:
             ticks = 1 if dy > 0 else -1
