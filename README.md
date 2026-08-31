@@ -16,6 +16,14 @@ Controla o Spotify com gestos da mão pela webcam, usando MediaPipe + OpenCV.
 Use `Iniciar (debug).bat` para ver dedo por dedo o que a câmera está
 reconhecendo — é o que ajuda a calibrar os limiares.
 
+**Para rolar o YouTube, use `Iniciar YouTube.bat`.**
+
+> ⚠️ O `Iniciar.bat` sem argumento abre no modo **música** (`--controller
+> media`), que **não rola página**. Nesse modo os gestos verticais aparecem
+> na tela — a barra enche normalmente — e nada acontece, porque o
+> controlador de música não atende rolagem. O programa avisa uma vez no
+> console: `[teclas de mídia] não atende 'rolar para baixo'`.
+
 Pelo terminal, o equivalente é:
 
 ```bash
