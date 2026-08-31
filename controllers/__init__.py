@@ -1,4 +1,4 @@
-from .base import Controller
+from .base import Controller, PlayerController, ScrollController
 
 
 def get_controller(kind: str) -> Controller:
@@ -10,7 +10,11 @@ def get_controller(kind: str) -> Controller:
         from .spotify_api import SpotifyApiController
 
         return SpotifyApiController()
+    if kind == "youtube":
+        from .youtube import YouTubeController
+
+        return YouTubeController()
     raise ValueError(f"controlador desconhecido: {kind}")
 
 
-__all__ = ["Controller", "get_controller"]
+__all__ = ["Controller", "PlayerController", "ScrollController", "get_controller"]

@@ -23,6 +23,16 @@ import cv2
 from config import Config
 from controllers import get_controller
 from gestures import Action, GestureEngine, Pose, extended_fingers
+
+# Qual método do controlador atende cada ação. Um controlador que não implementa
+# o método simplesmente não atende aquela ação — ver controllers/base.py.
+ACAO_PARA_METODO = {
+    Action.PLAY_PAUSE: "play_pause",
+    Action.NEXT: "next_track",
+    Action.PREV: "previous_track",
+    Action.SCROLL_UP: "scroll_up",
+    Action.SCROLL_DOWN: "scroll_down",
+}
 from hand_tracker import HAND_CONNECTIONS, Hand, HandTracker
 
 GREEN = (120, 220, 90)
@@ -98,6 +108,17 @@ def draw_hud(frame, pose: Pose, engine: GestureEngine, controller_name: str,
         else:
             cv2.rectangle(frame, (cx - preenchido, y0), (cx, y1), cor, -1)
 
+    # Barra do swipe vertical: cresce do centro para cima ou para baixo
+    if abs(engine.swipe_vertical_progress) > 0.05:
+        cy, x0, x1, meia_v = h // 2, 20, 32, 100
+        preenchido_v = int(meia_v * min(1.0, abs(engine.swipe_vertical_progress)))
+        cor_v = GREEN if abs(engine.swipe_vertical_progress) >= 1.0 else ACCENT
+        cv2.rectangle(frame, (x0, cy - meia_v), (x1, cy + meia_v), (70, 70, 70), 1)
+        if engine.swipe_vertical_progress > 0:
+            cv2.rectangle(frame, (x0, cy), (x1, cy + preenchido_v), cor_v, -1)
+        else:
+            cv2.rectangle(frame, (x0, cy - preenchido_v), (x1, cy), cor_v, -1)
+
     if last_event and time.monotonic() - last_event_t < 2.0:
         cv2.putText(frame, _ascii(last_event), (12, h - 55), FONT, 0.9, ACCENT, 2)
 
@@ -109,9 +130,10 @@ def draw_hud(frame, pose: Pose, engine: GestureEngine, controller_name: str,
 def main() -> None:
     _setup_console()
     parser = argparse.ArgumentParser(description="Controle o Spotify com gestos da mão.")
-    parser.add_argument("--controller", choices=["media", "spotify"], default="media",
+    parser.add_argument("--controller", choices=["media", "spotify", "youtube"], default="media",
                         help="media = teclas de mídia do sistema (padrão); "
-                             "spotify = Web API oficial (precisa de Premium e .env)")
+                             "spotify = Web API oficial (precisa de Premium e .env); "
+                             "youtube = scroll na janela em foco")
     parser.add_argument("--camera", type=int, default=0, help="índice da webcam")
     parser.add_argument("--no-preview", action="store_true", help="roda sem janela de vídeo")
     parser.add_argument("--no-mirror", action="store_true",
@@ -133,6 +155,7 @@ def main() -> None:
 
     alvo = "punho fechado" if engine.pose_alvo is Pose.FIST else "palma aberta"
     print(f"Controle: {controller.name}")
+    avisadas = set()  # ações que este controlador não atende, já reportadas
     print("Gestos: deslizar a mao -> proxima faixa / <- faixa anterior")
     print(f"        {alvo} parado por {cfg.hold_duration_s:.1f}s = play/pause")
     print("Sair: Q na janela de video, ou Ctrl+C aqui.\n")
@@ -159,14 +182,18 @@ def main() -> None:
                 action = engine.update(hand, now)
 
                 if action is not None:
-                    if action is Action.NEXT:
-                        status = controller.next_track()
-                    elif action is Action.PREV:
-                        status = controller.previous_track()
+                    metodo = getattr(controller, ACAO_PARA_METODO[action], None)
+                    if metodo is None:
+                        # Este controlador não atende esta ação — o de música não
+                        # rola, o de rolagem não toca. Avisa uma vez e segue: em
+                        # silêncio, ficaria indistinguível de gesto não detectado.
+                        if action not in avisadas:
+                            avisadas.add(action)
+                            print(f"[{controller.name}] não atende '{action.value}' — gesto ignorado")
                     else:
-                        status = controller.play_pause()
-                    last_event, last_event_t = status, now
-                    print(f"[{time.strftime('%H:%M:%S')}] {action.value} -> {status}")
+                        status = metodo()
+                        last_event, last_event_t = status, now
+                        print(f"[{time.strftime('%H:%M:%S')}] {action.value} -> {status}")
 
                 fps = 0.9 * fps + 0.1 / max(1e-3, now - last_t)
                 last_t = now
