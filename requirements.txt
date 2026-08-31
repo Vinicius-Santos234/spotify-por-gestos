@@ -1,0 +1,7 @@
+mediapipe>=1.0.0
+opencv-python>=4.9
+# Só usados com --controller spotify:
+spotipy>=2.23
+python-dotenv>=1.0
+# Só no Linux/macOS, para as teclas de mídia:
+pynput>=1.7 ; sys_platform != "win32"

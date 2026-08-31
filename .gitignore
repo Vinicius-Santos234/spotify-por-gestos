@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# Segredos (NUNCA subir)
+.env
+
+# Cache do token OAuth do Spotify — gerado por controllers/spotify_api.py
+.spotify_token_cache
+
+# Modelo do MediaPipe (~8 MB - baixado automaticamente na primeira execucao)
+models/
