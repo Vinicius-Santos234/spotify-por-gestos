@@ -109,6 +109,9 @@ class GestureEngine:
         self._hold_start: Optional[float] = None
         self._armed = True  # play/pause só dispara com o gesto rearmado
         self._last_swipe = -999.0
+        # Quanto dura o bloqueio depois do último swipe. Depende do eixo que
+        # disparou: horizontal usa swipe_cooldown_s, vertical usa o de rolagem.
+        self._swipe_cooldown = cfg.swipe_cooldown_s
         self._last_hold = -999.0
         self.hold_progress = 0.0
         self.swipe_dx = 0.0
@@ -151,7 +154,7 @@ class GestureEngine:
         cfg = self.cfg
         self.swipe_progress = 0.0
         self.swipe_vertical_progress = 0.0
-        if now - self._last_swipe < cfg.swipe_cooldown_s:
+        if now - self._last_swipe < self._swipe_cooldown:
             # Enquanto o cooldown corre, joga fora o movimento: é o retorno da
             # mão à posição inicial, que senão dispararia o swipe contrário.
             self._samples.clear()
@@ -195,21 +198,23 @@ class GestureEngine:
                 horiz_ok = False
 
         if horiz_ok:
-            self._last_swipe = now
-            self._samples.clear()
-            self._hold_start = None
-            self.hold_progress = 0.0
+            self._disparou(now, cfg.swipe_cooldown_s)
             return Action.NEXT if dx > 0 else Action.PREV
 
         if vert_ok:
-            self._last_swipe = now
-            self._samples.clear()
-            self._hold_start = None
-            self.hold_progress = 0.0
+            self._disparou(now, cfg.scroll_cooldown_s)
             # Coordenadas: y cresce para baixo. Mão descendo -> dy > 0 -> rola a página para baixo
             return Action.SCROLL_DOWN if dy > 0 else Action.SCROLL_UP
 
         return None
+
+    def _disparou(self, now: float, cooldown: float) -> None:
+        """Registra um swipe e arma o bloqueio pelo tempo do eixo que disparou."""
+        self._last_swipe = now
+        self._swipe_cooldown = cooldown
+        self._samples.clear()
+        self._hold_start = None
+        self.hold_progress = 0.0
 
     # --- pose sustentada ---------------------------------------------------
 

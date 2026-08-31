@@ -8,7 +8,7 @@ import ctypes
 import platform
 import sys
 
-from .base import Controller
+from .base import PlayerController
 
 VK_MEDIA_NEXT_TRACK = 0xB0
 VK_MEDIA_PREV_TRACK = 0xB1
@@ -90,7 +90,7 @@ class _PynputKeys:
         return True
 
 
-class MediaKeysController(Controller):
+class MediaKeysController(PlayerController):
     name = "teclas de mídia"
 
     def __init__(self):

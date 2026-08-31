@@ -23,6 +23,16 @@ import cv2
 from config import Config
 from controllers import get_controller
 from gestures import Action, GestureEngine, Pose, extended_fingers
+
+# Qual método do controlador atende cada ação. Um controlador que não implementa
+# o método simplesmente não atende aquela ação — ver controllers/base.py.
+ACAO_PARA_METODO = {
+    Action.PLAY_PAUSE: "play_pause",
+    Action.NEXT: "next_track",
+    Action.PREV: "previous_track",
+    Action.SCROLL_UP: "scroll_up",
+    Action.SCROLL_DOWN: "scroll_down",
+}
 from hand_tracker import HAND_CONNECTIONS, Hand, HandTracker
 
 GREEN = (120, 220, 90)
@@ -145,6 +155,7 @@ def main() -> None:
 
     alvo = "punho fechado" if engine.pose_alvo is Pose.FIST else "palma aberta"
     print(f"Controle: {controller.name}")
+    avisadas = set()  # ações que este controlador não atende, já reportadas
     print("Gestos: deslizar a mao -> proxima faixa / <- faixa anterior")
     print(f"        {alvo} parado por {cfg.hold_duration_s:.1f}s = play/pause")
     print("Sair: Q na janela de video, ou Ctrl+C aqui.\n")
@@ -171,20 +182,16 @@ def main() -> None:
                 action = engine.update(hand, now)
 
                 if action is not None:
-                    if action is Action.NEXT:
-                        status = controller.next_track()
-                    elif action is Action.PREV:
-                        status = controller.previous_track()
-                    elif action is Action.SCROLL_UP:
-                        status = controller.scroll_up()
-                    elif action is Action.SCROLL_DOWN:
-                        status = controller.scroll_down()
-                    elif action is Action.PLAY_PAUSE:
-                        status = controller.play_pause()
+                    metodo = getattr(controller, ACAO_PARA_METODO[action], None)
+                    if metodo is None:
+                        # Este controlador não atende esta ação — o de música não
+                        # rola, o de rolagem não toca. Avisa uma vez e segue: em
+                        # silêncio, ficaria indistinguível de gesto não detectado.
+                        if action not in avisadas:
+                            avisadas.add(action)
+                            print(f"[{controller.name}] não atende '{action.value}' — gesto ignorado")
                     else:
-                        status = ""
-
-                    if status:
+                        status = metodo()
                         last_event, last_event_t = status, now
                         print(f"[{time.strftime('%H:%M:%S')}] {action.value} -> {status}")
 

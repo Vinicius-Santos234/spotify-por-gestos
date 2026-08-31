@@ -4,7 +4,7 @@ import ctypes
 import platform
 import sys
 
-from .base import Controller
+from .base import ScrollController
 from .media_keys import _Input, _MouseInput, ULONG_PTR
 
 INPUT_MOUSE = 0
@@ -43,7 +43,7 @@ class _PynputMouse:
         self._mouse.scroll(0, ticks)
         return True
 
-class YouTubeController(Controller):
+class YouTubeController(ScrollController):
     name = "youtube"
 
     def __init__(self):

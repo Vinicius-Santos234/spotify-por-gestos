@@ -8,13 +8,13 @@ Configuração:
 
 import os
 
-from .base import Controller
+from .base import PlayerController
 
 SCOPE = "user-modify-playback-state user-read-playback-state"
 CACHE_PATH = ".spotify_token_cache"
 
 
-class SpotifyApiController(Controller):
+class SpotifyApiController(PlayerController):
     name = "Spotify Web API"
 
     def __init__(self):

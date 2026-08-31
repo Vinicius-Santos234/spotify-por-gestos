@@ -42,8 +42,12 @@ class Config:
     # O movimento precisa ser N vezes mais vertical do que horizontal.
     swipe_vertical_ratio: float = 1.4
 
-    # Tempo mínimo entre dois swipes.
+    # Tempo mínimo entre dois swipes horizontais (pular/voltar faixa).
     swipe_cooldown_s: float = 1.0
+    # Tempo mínimo entre duas rolagens. Bem menor que o horizontal de propósito:
+    # pular faixa é ato isolado, rolar é repetitivo — com 1,0 s só dava para
+    # rolar uma vez por segundo, o que torna a rolagem inutilizável.
+    scroll_cooldown_s: float = 0.35
 
     # --- pose sustentada (play/pause) ---
     # Qual pose, mantida parada, dispara o play/pause: "punho" ou "palma".

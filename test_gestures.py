@@ -212,5 +212,44 @@ t, f2 = run(e, t, swipe_frames(0.65, 0.3, n=12))  # retorno, mão ainda aberta
 t, f3 = run(e, t, still_frames(0.3, 0.3))
 check("retorno nao dispara contrario", f1 + f2 + f3, [Action.NEXT])
 
+
+# 12. o cooldown da rolagem e mais curto que o de faixa: com pausa curta,
+# a rolagem repete. Sem isso so daria para rolar uma vez por segundo.
+e = GestureEngine(cfg)
+t, f1 = run_vertical(e, 0.0, swipe_vertical_frames(0.3, 0.65))
+t, f2 = run_vertical(e, t, [(0.5, 0.65, OPEN_OFFSETS)] * int(0.5 * FPS))
+t, f3 = run_vertical(e, t, swipe_vertical_frames(0.3, 0.65))
+check("rolagem repete com pausa curta", f1 + f2 + f3, [Action.SCROLL_DOWN, Action.SCROLL_DOWN])
+
+# 13. o horizontal mantem o cooldown longo: a MESMA pausa curta nao repete.
+e = GestureEngine(cfg)
+t, f1 = run(e, 0.0, swipe_frames(0.3, 0.65))
+t, f2 = run(e, t, still_frames(0.65, 0.5))
+t, f3 = run(e, t, swipe_frames(0.3, 0.65))
+check("faixa nao repete com pausa curta", f1 + f2 + f3, [Action.NEXT])
+
+# 14. as interfaces voltaram a garantir: controlador incompleto nem instancia.
+from controllers.base import PlayerController, ScrollController
+
+
+class _PlayerIncompleto(PlayerController):
+    def play_pause(self):
+        return "x"
+    # next_track e previous_track faltando de proposito
+
+
+class _ScrollIncompleto(ScrollController):
+    def scroll_up(self):
+        return "x"
+    # scroll_down faltando de proposito
+
+
+for nome, cls in [("player", _PlayerIncompleto), ("scroll", _ScrollIncompleto)]:
+    try:
+        cls()
+        resultado = "instanciou"
+    except TypeError:
+        resultado = "TypeError"
+    check(f"{nome} incompleto nao instancia", resultado, "TypeError")
 print("\n=> TUDO OK" if ok else "\n=> TEM FALHA")
 sys.exit(0 if ok else 1)

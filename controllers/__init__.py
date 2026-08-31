@@ -1,4 +1,4 @@
-from .base import Controller
+from .base import Controller, PlayerController, ScrollController
 
 
 def get_controller(kind: str) -> Controller:
@@ -17,4 +17,4 @@ def get_controller(kind: str) -> Controller:
     raise ValueError(f"controlador desconhecido: {kind}")
 
 
-__all__ = ["Controller", "get_controller"]
+__all__ = ["Controller", "PlayerController", "ScrollController", "get_controller"]
