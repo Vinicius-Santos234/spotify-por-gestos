@@ -156,8 +156,14 @@ def main() -> None:
     alvo = "punho fechado" if engine.pose_alvo is Pose.FIST else "palma aberta"
     print(f"Controle: {controller.name}")
     avisadas = set()  # ações que este controlador não atende, já reportadas
-    print("Gestos: deslizar a mao -> proxima faixa / <- faixa anterior")
-    print(f"        {alvo} parado por {cfg.hold_duration_s:.1f}s = play/pause")
+    # Só anuncia o que ESTE controlador atende. Antes o texto listava sempre os
+    # gestos de música, inclusive no modo youtube — que não toca nada. Ler
+    # "proxima faixa" e ver a barra encher sem acontecer nada é o pior dos mundos.
+    if hasattr(controller, "next_track"):
+        print("Gestos: deslizar a mao -> proxima faixa / <- faixa anterior")
+        print(f"        {alvo} parado por {cfg.hold_duration_s:.1f}s = play/pause")
+    if hasattr(controller, "scroll_up"):
+        print("Gestos: subir a mao = rolar para cima / descer = rolar para baixo")
     print("Sair: Q na janela de video, ou Ctrl+C aqui.\n")
 
     last_event: Optional[str] = None
