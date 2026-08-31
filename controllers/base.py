@@ -6,15 +6,21 @@ from abc import ABC, abstractmethod
 class Controller(ABC):
     name = "base"
 
-    @abstractmethod
     def play_pause(self) -> str:
         """Alterna entre tocar e pausar. Devolve uma linha de status."""
+        return ""
 
-    @abstractmethod
-    def next_track(self) -> str: ...
+    def next_track(self) -> str:
+        return ""
 
-    @abstractmethod
-    def previous_track(self) -> str: ...
+    def previous_track(self) -> str:
+        return ""
+
+    def scroll_up(self) -> str:
+        return ""
+
+    def scroll_down(self) -> str:
+        return ""
 
     def close(self) -> None:
         pass

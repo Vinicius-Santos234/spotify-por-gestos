@@ -47,6 +47,8 @@ class Action(Enum):
     PLAY_PAUSE = "play/pause"
     NEXT = "próxima"
     PREV = "anterior"
+    SCROLL_UP = "rolar para cima"
+    SCROLL_DOWN = "rolar para baixo"
 
 
 POSE_POR_NOME = {"punho": Pose.FIST, "palma": Pose.OPEN}
@@ -110,7 +112,9 @@ class GestureEngine:
         self._last_hold = -999.0
         self.hold_progress = 0.0
         self.swipe_dx = 0.0
+        self.swipe_dy = 0.0
         self.swipe_progress = 0.0
+        self.swipe_vertical_progress = 0.0
 
     def update(self, hand: Optional[Hand], now: float) -> Optional[Action]:
         if hand is None:
@@ -146,6 +150,7 @@ class GestureEngine:
     def _check_swipe(self, now: float) -> Optional[Action]:
         cfg = self.cfg
         self.swipe_progress = 0.0
+        self.swipe_vertical_progress = 0.0
         if now - self._last_swipe < cfg.swipe_cooldown_s:
             # Enquanto o cooldown corre, joga fora o movimento: é o retorno da
             # mão à posição inicial, que senão dispararia o swipe contrário.
@@ -166,21 +171,45 @@ class GestureEngine:
 
         dx = window[-1].x - window[0].x
         dy = window[-1].y - window[0].y
-        # Quanto do deslocamento necessário já foi feito, com sinal. O HUD
-        # mostra isso como barra: sem ela não dá para saber se faltou
-        # movimento, faltou velocidade ou a pose barrou o gesto.
-        self.swipe_dx = dx
-        self.swipe_progress = max(-1.5, min(1.5, dx / cfg.swipe_min_dx))
-        if abs(dx) < cfg.swipe_min_dx:
-            return None
-        if abs(dx) < abs(dy) * cfg.swipe_horizontal_ratio:
-            return None
 
-        self._last_swipe = now
-        self._samples.clear()
-        self._hold_start = None
-        self.hold_progress = 0.0
-        return Action.NEXT if dx > 0 else Action.PREV
+        self.swipe_dx = dx
+        self.swipe_dy = dy
+
+        # O progresso visual deve ser mapeado independentemente da direção
+        # para que o usuário saiba se está chegando lá.
+        self.swipe_progress = max(-1.5, min(1.5, dx / cfg.swipe_min_dx))
+        self.swipe_vertical_progress = max(-1.5, min(1.5, dy / cfg.swipe_min_dy))
+
+        # Testar horizontal
+        horiz_ok = (abs(dx) >= cfg.swipe_min_dx) and (abs(dx) >= abs(dy) * cfg.swipe_horizontal_ratio)
+
+        # Testar vertical
+        vert_ok = (abs(dy) >= cfg.swipe_min_dy) and (abs(dy) >= abs(dx) * cfg.swipe_vertical_ratio)
+
+        # R2: Horizontal e vertical não se atropelam
+        # Se os dois limiares forem atendidos simultaneamente, ganha a direção com maior deslocamento absoluto (embora os rácios mutuamente exclusivos normalmente impeçam isso)
+        if horiz_ok and vert_ok:
+            if abs(dx) > abs(dy):
+                vert_ok = False
+            else:
+                horiz_ok = False
+
+        if horiz_ok:
+            self._last_swipe = now
+            self._samples.clear()
+            self._hold_start = None
+            self.hold_progress = 0.0
+            return Action.NEXT if dx > 0 else Action.PREV
+
+        if vert_ok:
+            self._last_swipe = now
+            self._samples.clear()
+            self._hold_start = None
+            self.hold_progress = 0.0
+            # Coordenadas: y cresce para baixo. Mão descendo -> dy > 0 -> rola a página para baixo
+            return Action.SCROLL_DOWN if dy > 0 else Action.SCROLL_UP
+
+        return None
 
     # --- pose sustentada ---------------------------------------------------
 

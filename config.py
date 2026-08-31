@@ -35,6 +35,13 @@ class Config:
     swipe_min_dx: float = 0.16
     # O movimento precisa ser N vezes mais horizontal do que vertical.
     swipe_horizontal_ratio: float = 1.4
+
+    # --- swipe vertical (rolar a página) ---
+    # Deslocamento vertical mínimo, em fração da altura da imagem.
+    swipe_min_dy: float = 0.16
+    # O movimento precisa ser N vezes mais vertical do que horizontal.
+    swipe_vertical_ratio: float = 1.4
+
     # Tempo mínimo entre dois swipes.
     swipe_cooldown_s: float = 1.0
 

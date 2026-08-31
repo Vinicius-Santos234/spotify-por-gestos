@@ -133,7 +133,7 @@ t, f1 = run(e, 0.0, swipe_frames(0.3, 0.65))
 t, f2 = run(e, t, still_frames(0.65, 0.9, FIST_OFFSETS))
 check("sem play/pause logo apos swipe", f1 + f2, [Action.NEXT])
 
-# 8. movimento vertical não conta como swipe
+# 8. movimento vertical disparava nada antes, mas agora dispara SCROLL_DOWN
 e = GestureEngine(cfg)
 fired = []
 t = 0.0
@@ -142,7 +142,56 @@ for i in range(9):
     a = e.update(make_hand(0.5, 0.25 + 0.4 * i / 8, OPEN_OFFSETS), t)
     if a:
         fired.append(a)
-check("movimento vertical ignorado", fired, [])
+check("movimento vertical dispara SCROLL_DOWN", fired, [Action.SCROLL_DOWN])
+
+def swipe_vertical_frames(y0, y1, n=9, offsets=OPEN_OFFSETS):
+    return [(0.5, y0 + (y1 - y0) * i / (n - 1), offsets) for i in range(n)]
+
+def run_vertical(engine, t, frames):
+    """frames = [(cx, cy, offsets), ...] -> lista de ações disparadas."""
+    fired = []
+    for cx, cy, offsets in frames:
+        t += STEP
+        a = engine.update(make_hand(cx, cy, offsets), t)
+        if a:
+            fired.append(a)
+    return t, fired
+
+# 8b. movimento vertical pra cima -> SCROLL_UP
+e = GestureEngine(cfg)
+t, fired = run_vertical(e, 0.0, swipe_vertical_frames(0.65, 0.3))
+check("swipe para cima", fired, [Action.SCROLL_UP])
+
+# 8c. punho fechado não dispara SCROLL
+e = GestureEngine(cfg)
+t, fired = run_vertical(e, 0.0, swipe_vertical_frames(0.2, 0.6, offsets=FIST_OFFSETS))
+check("swipe vertical de punho ignorado", fired, [])
+
+# 8d. movimento vertical muito curto é ignorado
+e = GestureEngine(cfg)
+t, fired = run_vertical(e, 0.0, swipe_vertical_frames(0.4, 0.5)) # dy=0.10, min=0.16
+check("movimento vertical curto ignorado", fired, [])
+
+# 8e. movimento diagonal perfeito é ambíguo, dispara no máximo 1 (ou ignora os 2 se o ratio impedir)
+# dx=0.2, dy=0.2 => horizontal ratio = dx/dy = 1 < 1.4, vertical ratio = dy/dx = 1 < 1.4. Então nenhum dispara.
+e = GestureEngine(cfg)
+frames = [(0.3 + 0.2 * i / 8, 0.3 + 0.2 * i / 8, OPEN_OFFSETS) for i in range(9)]
+t, fired = run_vertical(e, 0.0, frames)
+check("movimento diagonal perfeito ignorado", fired, [])
+
+# 8f. cooldown do swipe vertical
+e = GestureEngine(cfg)
+t, f1 = run_vertical(e, 0.0, swipe_vertical_frames(0.3, 0.65))
+t, f2 = run_vertical(e, t, [(0.5, 0.65, OPEN_OFFSETS)] * int(1.2 * FPS))
+t, f3 = run_vertical(e, t, swipe_vertical_frames(0.3, 0.65))
+check("dois swipes verticais seguidos", f1 + f2 + f3, [Action.SCROLL_DOWN, Action.SCROLL_DOWN])
+
+# 8g. retorno não dispara contrario (vertical)
+e = GestureEngine(cfg)
+t, f1 = run_vertical(e, 0.0, swipe_vertical_frames(0.3, 0.65))
+t, f2 = run_vertical(e, t, swipe_vertical_frames(0.65, 0.3, n=12))
+t, f3 = run_vertical(e, t, [(0.5, 0.3, OPEN_OFFSETS)] * int(0.3 * FPS))
+check("retorno vertical nao dispara contrario", f1 + f2 + f3, [Action.SCROLL_DOWN])
 
 # 9. movimento lento/curto não conta como swipe
 e = GestureEngine(cfg)

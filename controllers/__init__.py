@@ -10,6 +10,10 @@ def get_controller(kind: str) -> Controller:
         from .spotify_api import SpotifyApiController
 
         return SpotifyApiController()
+    if kind == "youtube":
+        from .youtube import YouTubeController
+
+        return YouTubeController()
     raise ValueError(f"controlador desconhecido: {kind}")
 
 
