@@ -44,6 +44,10 @@ class Config:
     # (pulso -> base do médio), abaixo da qual conta como pinça fechada.
     # Menor = precisa encostar mais os dedos.
     pinca_ratio: float = 0.45
+    # Quantos dos três dedos livres (médio, anelar, mínimo) precisam estar
+    # esticados para contar como pinça. É o que distingue pinça de punho, que
+    # também junta polegar e indicador. 0 desliga a distinção.
+    pinca_dedos_livres: int = 1
     # Quantos "cliques" de roda um arrasto da altura inteira da tela produz.
     # É a sensibilidade: aumente se a rolagem estiver preguiçosa.
     scroll_ticks_por_tela: float = 25.0

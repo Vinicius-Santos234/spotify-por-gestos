@@ -39,6 +39,7 @@ Sensibilidade em `config.py`:
 |---|---|
 | `scroll_ticks_por_tela` | quanto rola um arrasto da altura inteira da tela. Aumente se estiver preguiçoso |
 | `pinca_ratio` | quão perto os dedos precisam estar para contar como pinça |
+| `pinca_dedos_livres` | quantos dos três dedos livres precisam estar esticados. É o que impede o punho de virar pinça |
 | `scroll_natural` | `True` = conteúdo acompanha o dedo, como no celular. `False` = sentido da roda do mouse |
 
 Pelo terminal, o equivalente é:

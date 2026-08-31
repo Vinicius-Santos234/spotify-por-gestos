@@ -87,7 +87,19 @@ def esta_em_pinca(hand: Hand, cfg: Config) -> bool:
     escala = _dist(px[WRIST], px[MIDDLE_MCP])
     if escala <= 0:
         return False
-    return _dist(px[THUMB_TIP], px[INDEX_TIP]) < escala * cfg.pinca_ratio
+    if _dist(px[THUMB_TIP], px[INDEX_TIP]) >= escala * cfg.pinca_ratio:
+        return False
+
+    # O punho fechado também junta polegar e indicador: medido nos landmarks
+    # sintéticos a razão dele fica em ~0.52, contra o limiar de 0.45 — margem
+    # que uma mão real cruza. Distância sozinha NÃO separa os dois, e baixar o
+    # limiar só tornaria a pinça de verdade difícil de fazer.
+    #
+    # O que separa é categórico: na pinça os outros dedos ficam de fora
+    # (médio, anelar e mínimo esticados = 3); no punho, nenhum. Exigir um só
+    # já resolve, e continua valendo para quem faz a pinça com a mão relaxada.
+    dedos = extended_fingers(hand, cfg.finger_extended_margin)
+    return sum(dedos[2:]) >= cfg.pinca_dedos_livres
 
 
 def ponto_da_pinca(hand: Hand) -> Tuple[float, float]:

@@ -205,6 +205,11 @@ from gestures import esta_em_pinca
 check("pinca reconhecida", esta_em_pinca(make_hand(0.5, 0.5, PINCA_OFFSETS), cfg), True)
 check("mao aberta nao e pinca", esta_em_pinca(make_hand(0.5, 0.5, OPEN_OFFSETS), cfg), False)
 
+# 14b. PUNHO NAO E PINCA. O punho tambem junta polegar e indicador — a razao
+# dele fica em ~0.52 contra o limiar de 0.45, margem que uma mao real cruza.
+# Quem separa nao e a distancia, e os dedos livres estarem esticados.
+check("punho nao e pinca", esta_em_pinca(make_hand(0.5, 0.5, FIST_OFFSETS), cfg), False)
+
 
 def arrastar(engine, t, y0, y1, offsets=PINCA_OFFSETS, n=10):
     """Move a mao de y0 a y1 e soma os ticks de rolagem produzidos."""
@@ -260,5 +265,11 @@ for k in range(10):
     if a:
         fired.append(a)
 check("pinca nao pula faixa", [x for x in fired if x is not Action.SCROLL], [])
+
+# 20. arrastar com o punho fechado nao rola: e a mesma distincao do 14b,
+# agora do lado do motor de arrasto e nao so do detector.
+e = GestureEngine(cfg)
+t, total = arrastar(e, 0.0, 0.3, 0.7, offsets=FIST_OFFSETS)
+check("arrasto de punho nao rola", total, 0)
 print("\n=> TUDO OK" if ok else "\n=> TEM FALHA")
 sys.exit(0 if ok else 1)

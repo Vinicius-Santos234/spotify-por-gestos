@@ -117,8 +117,13 @@ def draw_hud(frame, pose: Pose, engine: GestureEngine, controller_name: str,
     if last_event and time.monotonic() - last_event_t < 2.0:
         cv2.putText(frame, _ascii(last_event), (12, h - 55), FONT, 0.9, ACCENT, 2)
 
-    alvo = "punho" if engine.pose_alvo is Pose.FIST else "palma"
-    footer = f"Deslize <- -> pular faixa | {alvo} parado = play/pause | Q = sair"
+    # O rodape anuncia so o que este controlador atende: antes mostrava os
+    # gestos de musica mesmo no modo youtube, que nao toca nada.
+    if controller_name == "youtube":
+        footer = "Junte polegar e indicador e arraste | solte para reposicionar | Q = sair"
+    else:
+        alvo = "punho" if engine.pose_alvo is Pose.FIST else "palma"
+        footer = f"Deslize <- -> pular faixa | {alvo} parado = play/pause | Q = sair"
     cv2.putText(frame, _ascii(debug_text or footer), (12, h - 10), FONT, 0.5, GRAY, 1)
 
 
