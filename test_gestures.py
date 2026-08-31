@@ -133,7 +133,8 @@ t, f1 = run(e, 0.0, swipe_frames(0.3, 0.65))
 t, f2 = run(e, t, still_frames(0.65, 0.9, FIST_OFFSETS))
 check("sem play/pause logo apos swipe", f1 + f2, [Action.NEXT])
 
-# 8. movimento vertical disparava nada antes, mas agora dispara SCROLL_DOWN
+# 8. movimento vertical de mao aberta (sem pinca) nao rola nada: rolar exige
+# o "dedo na tela". Ver specs/002-rolagem-por-arrasto.md
 e = GestureEngine(cfg)
 fired = []
 t = 0.0
@@ -142,57 +143,7 @@ for i in range(9):
     a = e.update(make_hand(0.5, 0.25 + 0.4 * i / 8, OPEN_OFFSETS), t)
     if a:
         fired.append(a)
-check("movimento vertical dispara SCROLL_DOWN", fired, [Action.SCROLL_DOWN])
-
-def swipe_vertical_frames(y0, y1, n=9, offsets=OPEN_OFFSETS):
-    return [(0.5, y0 + (y1 - y0) * i / (n - 1), offsets) for i in range(n)]
-
-def run_vertical(engine, t, frames):
-    """frames = [(cx, cy, offsets), ...] -> lista de ações disparadas."""
-    fired = []
-    for cx, cy, offsets in frames:
-        t += STEP
-        a = engine.update(make_hand(cx, cy, offsets), t)
-        if a:
-            fired.append(a)
-    return t, fired
-
-# 8b. movimento vertical pra cima -> SCROLL_UP
-e = GestureEngine(cfg)
-t, fired = run_vertical(e, 0.0, swipe_vertical_frames(0.65, 0.3))
-check("swipe para cima", fired, [Action.SCROLL_UP])
-
-# 8c. punho fechado não dispara SCROLL
-e = GestureEngine(cfg)
-t, fired = run_vertical(e, 0.0, swipe_vertical_frames(0.2, 0.6, offsets=FIST_OFFSETS))
-check("swipe vertical de punho ignorado", fired, [])
-
-# 8d. movimento vertical muito curto é ignorado
-e = GestureEngine(cfg)
-t, fired = run_vertical(e, 0.0, swipe_vertical_frames(0.4, 0.5)) # dy=0.10, min=0.16
-check("movimento vertical curto ignorado", fired, [])
-
-# 8e. movimento diagonal perfeito é ambíguo, dispara no máximo 1 (ou ignora os 2 se o ratio impedir)
-# dx=0.2, dy=0.2 => horizontal ratio = dx/dy = 1 < 1.4, vertical ratio = dy/dx = 1 < 1.4. Então nenhum dispara.
-e = GestureEngine(cfg)
-frames = [(0.3 + 0.2 * i / 8, 0.3 + 0.2 * i / 8, OPEN_OFFSETS) for i in range(9)]
-t, fired = run_vertical(e, 0.0, frames)
-check("movimento diagonal perfeito ignorado", fired, [])
-
-# 8f. cooldown do swipe vertical
-e = GestureEngine(cfg)
-t, f1 = run_vertical(e, 0.0, swipe_vertical_frames(0.3, 0.65))
-t, f2 = run_vertical(e, t, [(0.5, 0.65, OPEN_OFFSETS)] * int(1.2 * FPS))
-t, f3 = run_vertical(e, t, swipe_vertical_frames(0.3, 0.65))
-check("dois swipes verticais seguidos", f1 + f2 + f3, [Action.SCROLL_DOWN, Action.SCROLL_DOWN])
-
-# 8g. retorno não dispara contrario (vertical)
-e = GestureEngine(cfg)
-t, f1 = run_vertical(e, 0.0, swipe_vertical_frames(0.3, 0.65))
-t, f2 = run_vertical(e, t, swipe_vertical_frames(0.65, 0.3, n=12))
-t, f3 = run_vertical(e, t, [(0.5, 0.3, OPEN_OFFSETS)] * int(0.3 * FPS))
-check("retorno vertical nao dispara contrario", f1 + f2 + f3, [Action.SCROLL_DOWN])
-
+check("vertical sem pinca nao rola", fired, [])
 # 9. movimento lento/curto não conta como swipe
 e = GestureEngine(cfg)
 t, fired = run(e, 0.0, swipe_frames(0.48, 0.55, n=15))
@@ -212,14 +163,6 @@ t, f2 = run(e, t, swipe_frames(0.65, 0.3, n=12))  # retorno, mão ainda aberta
 t, f3 = run(e, t, still_frames(0.3, 0.3))
 check("retorno nao dispara contrario", f1 + f2 + f3, [Action.NEXT])
 
-
-# 12. o cooldown da rolagem e mais curto que o de faixa: com pausa curta,
-# a rolagem repete. Sem isso so daria para rolar uma vez por segundo.
-e = GestureEngine(cfg)
-t, f1 = run_vertical(e, 0.0, swipe_vertical_frames(0.3, 0.65))
-t, f2 = run_vertical(e, t, [(0.5, 0.65, OPEN_OFFSETS)] * int(0.5 * FPS))
-t, f3 = run_vertical(e, t, swipe_vertical_frames(0.3, 0.65))
-check("rolagem repete com pausa curta", f1 + f2 + f3, [Action.SCROLL_DOWN, Action.SCROLL_DOWN])
 
 # 13. o horizontal mantem o cooldown longo: a MESMA pausa curta nao repete.
 e = GestureEngine(cfg)
@@ -251,5 +194,71 @@ for nome, cls in [("player", _PlayerIncompleto), ("scroll", _ScrollIncompleto)]:
     except TypeError:
         resultado = "TypeError"
     check(f"{nome} incompleto nao instancia", resultado, "TypeError")
+
+# --- rolagem por arrasto (spec 002) ---------------------------------------
+# Pinca: ponta do indicador (8) encostada na do polegar (4).
+PINCA_OFFSETS = list(OPEN_OFFSETS)
+PINCA_OFFSETS[8] = OPEN_OFFSETS[4]
+
+from gestures import esta_em_pinca
+
+check("pinca reconhecida", esta_em_pinca(make_hand(0.5, 0.5, PINCA_OFFSETS), cfg), True)
+check("mao aberta nao e pinca", esta_em_pinca(make_hand(0.5, 0.5, OPEN_OFFSETS), cfg), False)
+
+
+def arrastar(engine, t, y0, y1, offsets=PINCA_OFFSETS, n=10):
+    """Move a mao de y0 a y1 e soma os ticks de rolagem produzidos."""
+    total = 0
+    for k in range(n):
+        t += STEP
+        y = y0 + (y1 - y0) * k / (n - 1)
+        if engine.update(make_hand(0.5, y, offsets), t) is Action.SCROLL:
+            total += engine.scroll_ticks
+    return t, total
+
+
+# 15. arrastar em pinca rola, e no sentido do celular: para baixo mostra o
+# que estava acima, que na roda e o sentido positivo.
+e = GestureEngine(cfg)
+t, total = arrastar(e, 0.0, 0.3, 0.7)
+check("arrasto para baixo rola", total > 0, True)
+
+e = GestureEngine(cfg)
+t, total_cima = arrastar(e, 0.0, 0.7, 0.3)
+check("arrasto para cima rola ao contrario", total_cima < 0, True)
+
+# 16. proporcional: o dobro do caminho rola aproximadamente o dobro.
+e = GestureEngine(cfg)
+t, curto = arrastar(e, 0.0, 0.4, 0.5)
+e = GestureEngine(cfg)
+t, longo = arrastar(e, 0.0, 0.4, 0.6)
+check("arrasto dobrado rola ~o dobro", abs(longo - 2 * curto) <= 1, True)
+
+# 17. A CATRACA. E o motivo da spec 002 existir: com a pinca aberta, o
+# movimento de volta nao pode desfazer o que o arrasto fez.
+e = GestureEngine(cfg)
+t, ida = arrastar(e, 0.0, 0.3, 0.7)                          # arrasta agarrado
+t, volta = arrastar(e, t, 0.7, 0.3, offsets=OPEN_OFFSETS)    # volta com a mao solta
+check("arrasto rolou", ida > 0, True)
+check("volta sem pinca nao desfaz", volta, 0)
+
+# 18. soltar e agarrar de novo continua no mesmo sentido, sem se anular.
+e = GestureEngine(cfg)
+t, a1 = arrastar(e, 0.0, 0.3, 0.7)
+t, _ = arrastar(e, t, 0.7, 0.3, offsets=OPEN_OFFSETS)
+t, a2 = arrastar(e, t, 0.3, 0.7)
+check("dois arrastos somam", a1 > 0 and a2 > 0, True)
+
+# 19. pinca suspende os gestos de musica: arrasto torto nao pula faixa.
+e = GestureEngine(cfg)
+fired = []
+t = 0.0
+for k in range(10):
+    t += STEP
+    off = list(PINCA_OFFSETS)
+    a = e.update(make_hand(0.3 + 0.4 * k / 9, 0.5, off), t)   # movimento horizontal amplo
+    if a:
+        fired.append(a)
+check("pinca nao pula faixa", [x for x in fired if x is not Action.SCROLL], [])
 print("\n=> TUDO OK" if ok else "\n=> TEM FALHA")
 sys.exit(0 if ok else 1)

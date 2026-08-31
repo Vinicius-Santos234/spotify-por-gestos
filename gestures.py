@@ -28,6 +28,7 @@ WRIST = 0
 FINGER_PIPS = (6, 10, 14, 18)  # indicador, médio, anelar, mínimo
 FINGER_TIPS = (8, 12, 16, 20)
 THUMB_IP, THUMB_TIP, PINKY_MCP = 3, 4, 17
+INDEX_TIP, MIDDLE_MCP = 8, 9  # usados pela pinça
 
 # Se a mão sumir por mais que isso, o histórico de movimento é descartado.
 TRACK_GAP_S = 0.3
@@ -47,8 +48,9 @@ class Action(Enum):
     PLAY_PAUSE = "play/pause"
     NEXT = "próxima"
     PREV = "anterior"
-    SCROLL_UP = "rolar para cima"
-    SCROLL_DOWN = "rolar para baixo"
+    # Uma ação só: a quantidade vai em GestureEngine.scroll_ticks, porque
+    # rolagem por arrasto é contínua e proporcional, não um passo fixo.
+    SCROLL = "rolar"
 
 
 POSE_POR_NOME = {"punho": Pose.FIST, "palma": Pose.OPEN}
@@ -72,6 +74,26 @@ def extended_fingers(hand: Hand, margin: float) -> List[bool]:
     for pip, tip in zip(FINGER_PIPS, FINGER_TIPS):
         fingers.append(_dist(px[tip], wrist) > _dist(px[pip], wrist) * margin)
     return fingers
+
+
+def esta_em_pinca(hand: Hand, cfg: Config) -> bool:
+    """Polegar encostado no indicador — o "dedo na tela".
+
+    A distância é normalizada pelo tamanho da mão (pulso -> base do médio):
+    sem isso, mão longe da câmera nunca fecharia a pinça e mão perto viveria
+    em pinça.
+    """
+    px = hand.px
+    escala = _dist(px[WRIST], px[MIDDLE_MCP])
+    if escala <= 0:
+        return False
+    return _dist(px[THUMB_TIP], px[INDEX_TIP]) < escala * cfg.pinca_ratio
+
+
+def ponto_da_pinca(hand: Hand) -> Tuple[float, float]:
+    """Meio do caminho entre as duas pontas: é a "ponta do dedo" que arrasta."""
+    (ax, ay), (bx, by) = hand.norm[THUMB_TIP], hand.norm[INDEX_TIP]
+    return ((ax + bx) / 2, (ay + by) / 2)
 
 
 def classify_pose(hand: Hand, cfg: Config) -> Pose:
@@ -114,10 +136,12 @@ class GestureEngine:
         self._swipe_cooldown = cfg.swipe_cooldown_s
         self._last_hold = -999.0
         self.hold_progress = 0.0
+        self.pinca = False
+        self._arrasto_y: Optional[float] = None
+        self._sobra = 0.0   # fração de tick que não coube neste frame (R3)
+        self.scroll_ticks = 0
         self.swipe_dx = 0.0
-        self.swipe_dy = 0.0
         self.swipe_progress = 0.0
-        self.swipe_vertical_progress = 0.0
 
     def update(self, hand: Optional[Hand], now: float) -> Optional[Action]:
         if hand is None:
@@ -126,9 +150,22 @@ class GestureEngine:
             self._hold_start = None
             self.hold_progress = 0.0
             self._armed = True
+            self._soltar_pinca()
             return None
 
         self.pose = classify_pose(hand, self.cfg)
+        self.pinca = esta_em_pinca(hand, self.cfg)
+
+        # Com a pinça fechada só existe arrasto: swipe e play/pause ficam
+        # suspensos (R6). Sem isso, um arrasto meio torto pularia faixa.
+        if self.pinca:
+            self._samples.clear()
+            self._hold_start = None
+            self.hold_progress = 0.0
+            self.swipe_progress = 0.0
+            return self._arrastar(ponto_da_pinca(hand))
+
+        self._soltar_pinca()
 
         x, y = hand.center
 
@@ -148,12 +185,47 @@ class GestureEngine:
             return action
         return self._check_hold(now)
 
+    # --- arrasto (pinça) ---------------------------------------------------
+
+    def _soltar_pinca(self) -> None:
+        """Dedo saiu da tela. Zera a âncora: o retorno não pode rolar (R4)."""
+        self.pinca = False
+        self._arrasto_y = None
+        self._sobra = 0.0
+        self.scroll_ticks = 0
+
+    def _arrastar(self, ponto: Tuple[float, float]) -> Optional[Action]:
+        y = ponto[1]
+        self.scroll_ticks = 0
+
+        if self._arrasto_y is None:
+            # Primeiro frame da pinça: só ancora. O salto até aqui não é arrasto.
+            self._arrasto_y = y
+            return None
+
+        dy = y - self._arrasto_y
+        self._arrasto_y = y
+
+        # Celular: o conteúdo acompanha o dedo. Arrastar para baixo (dy > 0)
+        # traz o conteúdo para baixo, ou seja, mostra o que estava acima — que
+        # na roda do mouse é o sentido positivo.
+        sentido = 1.0 if self.cfg.scroll_natural else -1.0
+        self._sobra += sentido * dy * self.cfg.scroll_ticks_por_tela
+
+        # A roda só aceita passo inteiro; a fração fica para o próximo frame,
+        # senão arrasto lento vira zero para sempre (R3).
+        ticks = int(self._sobra)
+        if ticks == 0:
+            return None
+        self._sobra -= ticks
+        self.scroll_ticks = ticks
+        return Action.SCROLL
+
     # --- swipe -------------------------------------------------------------
 
     def _check_swipe(self, now: float) -> Optional[Action]:
         cfg = self.cfg
         self.swipe_progress = 0.0
-        self.swipe_vertical_progress = 0.0
         if now - self._last_swipe < self._swipe_cooldown:
             # Enquanto o cooldown corre, joga fora o movimento: é o retorno da
             # mão à posição inicial, que senão dispararia o swipe contrário.
@@ -176,41 +248,19 @@ class GestureEngine:
         dy = window[-1].y - window[0].y
 
         self.swipe_dx = dx
-        self.swipe_dy = dy
 
         # Quanto do deslocamento necessário já foi feito, com sinal.
         # O HUD mostra isso como barra: sem ela não dá para saber se faltou
         # movimento, faltou velocidade ou a pose barrou o gesto.
         self.swipe_progress = max(-1.5, min(1.5, dx / cfg.swipe_min_dx))
-        self.swipe_vertical_progress = max(-1.5, min(1.5, dy / cfg.swipe_min_dy))
 
-        # Testar horizontal
-        horiz_ok = (abs(dx) >= cfg.swipe_min_dx) and (abs(dx) >= abs(dy) * cfg.swipe_horizontal_ratio)
+        if abs(dx) < cfg.swipe_min_dx:
+            return None
+        if abs(dx) < abs(dy) * cfg.swipe_horizontal_ratio:
+            return None
 
-        # Testar vertical
-        vert_ok = (abs(dy) >= cfg.swipe_min_dy) and (abs(dy) >= abs(dx) * cfg.swipe_vertical_ratio)
-
-        # R2: Horizontal e vertical não se atropelam
-        # Se os dois limiares forem atendidos ao mesmo tempo, ganha a direção
-        # com maior deslocamento absoluto. Na prática não acontece: com as duas
-        # proporções em 1.4, |dx| >= 1.4|dy| e |dy| >= 1.4|dx| não podem valer
-        # juntas. O desempate existe para o caso de alguém baixar os limiares.
-        if horiz_ok and vert_ok:
-            if abs(dx) > abs(dy):
-                vert_ok = False
-            else:
-                horiz_ok = False
-
-        if horiz_ok:
-            self._disparou(now, cfg.swipe_cooldown_s)
-            return Action.NEXT if dx > 0 else Action.PREV
-
-        if vert_ok:
-            self._disparou(now, cfg.scroll_cooldown_s)
-            # Coordenadas: y cresce para baixo. Mão descendo -> dy > 0 -> rola a página para baixo
-            return Action.SCROLL_DOWN if dy > 0 else Action.SCROLL_UP
-
-        return None
+        self._disparou(now, cfg.swipe_cooldown_s)
+        return Action.NEXT if dx > 0 else Action.PREV
 
     def _disparou(self, now: float, cooldown: float) -> None:
         """Registra um swipe e arma o bloqueio pelo tempo do eixo que disparou."""

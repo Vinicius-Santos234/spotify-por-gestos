@@ -36,18 +36,20 @@ class Config:
     # O movimento precisa ser N vezes mais horizontal do que vertical.
     swipe_horizontal_ratio: float = 1.4
 
-    # --- swipe vertical (rolar a página) ---
-    # Deslocamento vertical mínimo, em fração da altura da imagem.
-    swipe_min_dy: float = 0.16
-    # O movimento precisa ser N vezes mais vertical do que horizontal.
-    swipe_vertical_ratio: float = 1.4
-
     # Tempo mínimo entre dois swipes horizontais (pular/voltar faixa).
     swipe_cooldown_s: float = 1.0
-    # Tempo mínimo entre duas rolagens. Bem menor que o horizontal de propósito:
-    # pular faixa é ato isolado, rolar é repetitivo — com 1,0 s só dava para
-    # rolar uma vez por segundo, o que torna a rolagem inutilizável.
-    scroll_cooldown_s: float = 0.35
+
+    # --- rolagem por arrasto (pinça) ---
+    # Distância entre polegar e indicador, como fração do tamanho da mão
+    # (pulso -> base do médio), abaixo da qual conta como pinça fechada.
+    # Menor = precisa encostar mais os dedos.
+    pinca_ratio: float = 0.45
+    # Quantos "cliques" de roda um arrasto da altura inteira da tela produz.
+    # É a sensibilidade: aumente se a rolagem estiver preguiçosa.
+    scroll_ticks_por_tela: float = 25.0
+    # True = conteúdo acompanha o dedo, como no celular (arrastar para baixo
+    # mostra o que estava acima). False = sentido da roda do mouse.
+    scroll_natural: bool = True
 
     # --- pose sustentada (play/pause) ---
     # Qual pose, mantida parada, dispara o play/pause: "punho" ou "palma".

@@ -40,10 +40,8 @@ class PlayerController(Controller):
 
 
 class ScrollController(Controller):
-    """Rola a página."""
+    """Rola a página, por quantidade."""
 
     @abstractmethod
-    def scroll_up(self) -> str: ...
-
-    @abstractmethod
-    def scroll_down(self) -> str: ...
+    def scroll_by(self, ticks: int) -> str:
+        """Rola `ticks` cliques de roda. Positivo sobe o conteúdo, negativo desce."""

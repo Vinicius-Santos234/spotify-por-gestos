@@ -30,8 +30,7 @@ ACAO_PARA_METODO = {
     Action.PLAY_PAUSE: "play_pause",
     Action.NEXT: "next_track",
     Action.PREV: "previous_track",
-    Action.SCROLL_UP: "scroll_up",
-    Action.SCROLL_DOWN: "scroll_down",
+    Action.SCROLL: "scroll_by",
 }
 from hand_tracker import HAND_CONNECTIONS, Hand, HandTracker
 
@@ -108,16 +107,12 @@ def draw_hud(frame, pose: Pose, engine: GestureEngine, controller_name: str,
         else:
             cv2.rectangle(frame, (cx - preenchido, y0), (cx, y1), cor, -1)
 
-    # Barra do swipe vertical: cresce do centro para cima ou para baixo
-    if abs(engine.swipe_vertical_progress) > 0.05:
-        cy, x0, x1, meia_v = h // 2, 20, 32, 100
-        preenchido_v = int(meia_v * min(1.0, abs(engine.swipe_vertical_progress)))
-        cor_v = GREEN if abs(engine.swipe_vertical_progress) >= 1.0 else ACCENT
-        cv2.rectangle(frame, (x0, cy - meia_v), (x1, cy + meia_v), (70, 70, 70), 1)
-        if engine.swipe_vertical_progress > 0:
-            cv2.rectangle(frame, (x0, cy), (x1, cy + preenchido_v), cor_v, -1)
-        else:
-            cv2.rectangle(frame, (x0, cy - preenchido_v), (x1, cy), cor_v, -1)
+    # Pinça fechada = "dedo na tela". Sem esse retorno não dá para saber se a
+    # pinça foi reconhecida — mesma razão da barra de progresso do swipe.
+    if engine.pinca:
+        cv2.circle(frame, (w // 2, h // 2), 26, GREEN, 3)
+        cv2.putText(frame, _ascii("ARRASTANDO"), (w // 2 - 78, h // 2 + 62),
+                    FONT, 0.7, GREEN, 2)
 
     if last_event and time.monotonic() - last_event_t < 2.0:
         cv2.putText(frame, _ascii(last_event), (12, h - 55), FONT, 0.9, ACCENT, 2)
@@ -162,8 +157,9 @@ def main() -> None:
     if hasattr(controller, "next_track"):
         print("Gestos: deslizar a mao -> proxima faixa / <- faixa anterior")
         print(f"        {alvo} parado por {cfg.hold_duration_s:.1f}s = play/pause")
-    if hasattr(controller, "scroll_up"):
-        print("Gestos: subir a mao = rolar para cima / descer = rolar para baixo")
+    if hasattr(controller, "scroll_by"):
+        print("Gestos: junte polegar e indicador (pinca) e arraste, como no celular")
+        print("        soltar a pinca para o movimento de volta nao rolar")
     print("Sair: Q na janela de video, ou Ctrl+C aqui.\n")
 
     last_event: Optional[str] = None
@@ -196,6 +192,9 @@ def main() -> None:
                         if action not in avisadas:
                             avisadas.add(action)
                             print(f"[{controller.name}] não atende '{action.value}' — gesto ignorado")
+                    elif action is Action.SCROLL:
+                        # Única ação com quantidade: o arrasto é proporcional.
+                        status = metodo(engine.scroll_ticks)
                     else:
                         status = metodo()
                         last_event, last_event_t = status, now

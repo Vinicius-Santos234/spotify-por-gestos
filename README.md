@@ -24,6 +24,23 @@ reconhecendo — é o que ajuda a calibrar os limiares.
 > controlador de música não atende rolagem. O programa avisa uma vez no
 > console: `[teclas de mídia] não atende 'rolar para baixo'`.
 
+### Como rolar
+
+Como no celular: **junte o polegar e o indicador** (a pinça é o dedo
+encostando na tela), **arraste** para onde quiser rolar e **solte os dedos**.
+O círculo verde no meio da tela mostra que a pinça foi reconhecida.
+
+O movimento de volta com os dedos soltos **não rola nada** — é o que evita
+ficar parado no mesmo lugar. Ver `specs/002-rolagem-por-arrasto.md`.
+
+Sensibilidade em `config.py`:
+
+| Campo | O que faz |
+|---|---|
+| `scroll_ticks_por_tela` | quanto rola um arrasto da altura inteira da tela. Aumente se estiver preguiçoso |
+| `pinca_ratio` | quão perto os dedos precisam estar para contar como pinça |
+| `scroll_natural` | `True` = conteúdo acompanha o dedo, como no celular. `False` = sentido da roda do mouse |
+
 Pelo terminal, o equivalente é:
 
 ```bash

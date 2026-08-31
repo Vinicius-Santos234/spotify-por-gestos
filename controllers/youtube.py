@@ -56,12 +56,9 @@ class YouTubeController(ScrollController):
                     "Fora do Windows este modo precisa do pynput: pip install pynput\n"
                 )
 
-    def scroll_up(self) -> str:
-        if self._backend.send_wheel(120):  # 120 = WHEEL_DELTA (para cima)
-            return "Rolou para cima"
-        return "Falha ao rolar para cima"
-
-    def scroll_down(self) -> str:
-        if self._backend.send_wheel(-120): # -120 = -WHEEL_DELTA (para baixo)
-            return "Rolou para baixo"
-        return "Falha ao rolar para baixo"
+    def scroll_by(self, ticks: int) -> str:
+        # WHEEL_DELTA = 120 é um "clique" de roda.
+        if self._backend.send_wheel(ticks * 120):
+            sentido = "cima" if ticks > 0 else "baixo"
+            return f"Rolou {abs(ticks)} para {sentido}"
+        return "Falha ao rolar"
